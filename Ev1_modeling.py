@@ -119,7 +119,7 @@ np.random.seed()
 initial_charge_levels = get_initial_charge_levels(num_buses, bus_capacities)
 
 # Calculate charging schedule
-charging_schedule = calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_window, charger_capacity, charging_rates)
+charging_schedule = calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_window, charger_capacity, charging_rates, num_chargers)
 
 # Prepare data
 charger_allocation_df = prepare_charger_allocation_data(charging_schedule, num_chargers)
