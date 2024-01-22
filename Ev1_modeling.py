@@ -114,16 +114,15 @@ def prepare_charger_allocation_data(charging_schedule, num_chargers):
 # Set random seed for reproducibility
 np.random.seed()
 
-total_charging_time_required = np.sum(charging_schedule) / num_chargers
-if total_charging_time_required > charging_window * charger_capacity:
-    st.warning("Charging window insufficient, consider extending the charging time or adding more chargers.")
-
 
 # Get initial charge levels
 initial_charge_levels = get_initial_charge_levels(num_buses, bus_capacities)
 
 # Calculate charging schedule
 charging_schedule = calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_window, charger_capacity, charging_rates)
+
+# Prepare data
+charger_allocation_df = prepare_charger_allocation_data(charging_schedule, num_chargers)
 
 
 bus_info_str = "### Configured Buses:\n"
@@ -158,6 +157,11 @@ weekly_cost = total_cost * num_selected_days
 
 # Calculate the average cost per kW
 average_cost_per_kw = total_cost / charge_delivered
+
+total_charging_time_required = np.sum(charging_schedule) / num_chargers
+if total_charging_time_required > charging_window * charger_capacity:
+    st.warning("Charging window insufficient, consider extending the charging time or adding more chargers.")
+
 
 # Display the total cost in a bold format
 st.markdown(f"## **Total Charging Cost per Schedule: ${total_cost:.2f}**")
@@ -217,8 +221,6 @@ def plot_charger_allocation_chart(df):
     )
     st.altair_chart(chart)
 
-# Prepare data
-charger_allocation_df = prepare_charger_allocation_data(charging_schedule, num_chargers)
 
 # Plot chart
 plot_charger_allocation_chart(charger_allocation_df)
