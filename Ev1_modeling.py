@@ -21,6 +21,8 @@ bus_capacity_input = st.sidebar.number_input("Bus Capacity (KW)", 50, 500, 155)
 if st.sidebar.button("Add Buses"):
     st.session_state.bus_configurations.append((num_buses_input, bus_capacity_input))
 
+num_chargers = st.sidebar.number_input("Number of Chargers", 1, num_buses, 1)
+
 # Display list of added bus configurations with an option to remove
 st.sidebar.write("Bus Configurations:")
 to_remove = None
@@ -57,34 +59,62 @@ def get_initial_charge_levels(num_buses, bus_capacities):
     return initial_charge_levels
 
 @st.cache_data
-def calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_window, charger_capacity, charging_rates):
+def calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_window, charger_capacity, charging_rates, num_chargers):
     charging_needs = np.array(bus_capacities) - initial_charge_levels
-    total_charge_required = np.sum(charging_needs)
-    threshold_30_percent = 0.3 * charger_capacity * len(bus_capacities)
-    sorted_indices = np.argsort(-charging_needs)
-    
     hours = len(charging_rates)
     charging_schedule = np.zeros((len(bus_capacities), hours))
-    
-    for idx in sorted_indices:
-        remaining_charge = charging_needs[idx]
-        
-        for h in np.argsort(charging_rates):
-            if remaining_charge <= 0:
+
+    for h in range(hours):
+        # Sort buses by their remaining charging needs at each hour
+        sorted_indices = np.argsort(-charging_needs)
+
+        # Track the number of chargers used in this hour
+        chargers_used = 0
+
+        for idx in sorted_indices:
+            if chargers_used >= num_chargers:
+                # All available chargers are allocated for this hour
                 break
-            current_total_charge_this_hour = np.sum(charging_schedule[:, h])
-            max_possible_charge_this_hour = threshold_30_percent - current_total_charge_this_hour
-            max_charge_per_hour = 50
-            available_charge_this_hour = min(max_charge_per_hour, max_possible_charge_this_hour)
-            charge_this_hour = min(available_charge_this_hour, remaining_charge)
+
+            remaining_charge_need = charging_needs[idx]
+            if remaining_charge_need <= 0:
+                continue
+
+            # Calculate max charge that can be provided in this hour
+            charge_this_hour = min(remaining_charge_need, charger_capacity * charging_rates[h])
             charging_schedule[idx, h] = charge_this_hour
-            remaining_charge -= charge_this_hour
-            
+
+            # Update the remaining charge needs and chargers used
+            charging_needs[idx] -= charge_this_hour
+            chargers_used += 1
+
     return charging_schedule
+    
+def prepare_charger_allocation_data(charging_schedule, num_chargers):
+    hours = charging_schedule.shape[1]
+    charger_allocation = []
+
+    for hour in range(hours):
+        chargers_used = 0
+        for bus_index, charge in enumerate(charging_schedule[:, hour]):
+            if charge > 0 and chargers_used < num_chargers:
+                charger_allocation.append({
+                    'Hour': hour + 1,
+                    'Charger': chargers_used + 1,
+                    'Bus': bus_index + 1,
+                    'Charge': charge
+                })
+                chargers_used += 1
+
+    return pd.DataFrame(charger_allocation)
 
 
 # Set random seed for reproducibility
 np.random.seed()
+
+total_charging_time_required = np.sum(charging_schedule) / num_chargers
+if total_charging_time_required > charging_window * charger_capacity:
+    st.warning("Charging window insufficient, consider extending the charging time or adding more chargers.")
 
 
 # Get initial charge levels
@@ -172,7 +202,24 @@ def plot_schedule_altair(df):
 plot_schedule_altair(schedule_df)
 
 
+def plot_charger_allocation_chart(df):
+    chart = alt.Chart(df).mark_rect().encode(
+        x='Hour:O',
+        y='Charger:O',
+        color='Bus:N',
+        tooltip=['Hour', 'Charger', 'Bus', 'Charge']
+    ).properties(
+        width=800,
+        height=400,
+        title='Charger Allocation to Buses Over Time'
+    )
+    st.altair_chart(chart)
 
+# Prepare data
+charger_allocation_df = prepare_charger_allocation_data(charging_schedule, num_chargers)
+
+# Plot chart
+plot_charger_allocation_chart(charger_allocation_df)
 
 
 
