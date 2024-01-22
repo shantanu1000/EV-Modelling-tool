@@ -36,10 +36,12 @@ bus_capacities = []
 
 for num, capacity in st.session_state.bus_configurations:
     bus_capacities.extend([capacity] * num)
-    
-num_buses = len(bus_capacities)
 
-num_chargers = st.sidebar.number_input("Number of Chargers", 1, num_buses, 1)
+# Ensure num_buses has a valid value
+num_buses = len(bus_capacities) if bus_capacities else 1
+
+# Define num_chargers input
+num_chargers = st.sidebar.number_input("Number of Chargers", 1, max(1, num_buses), 1)
 charging_window = st.sidebar.slider("Charging Window (hours)", 1, 24, 8)
 charger_capacity = st.sidebar.slider("Charger Capacity (KW per hour)", 10, 100, 50)
 charging_rates = [
