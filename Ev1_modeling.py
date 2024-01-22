@@ -21,7 +21,6 @@ bus_capacity_input = st.sidebar.number_input("Bus Capacity (KW)", 50, 500, 155)
 if st.sidebar.button("Add Buses"):
     st.session_state.bus_configurations.append((num_buses_input, bus_capacity_input))
 
-num_chargers = st.sidebar.number_input("Number of Chargers", 1, num_buses, 1)
 
 # Display list of added bus configurations with an option to remove
 st.sidebar.write("Bus Configurations:")
@@ -40,6 +39,7 @@ for num, capacity in st.session_state.bus_configurations:
     
 num_buses = len(bus_capacities)
 
+num_chargers = st.sidebar.number_input("Number of Chargers", 1, num_buses, 1)
 charging_window = st.sidebar.slider("Charging Window (hours)", 1, 24, 8)
 charger_capacity = st.sidebar.slider("Charger Capacity (KW per hour)", 10, 100, 50)
 charging_rates = [
