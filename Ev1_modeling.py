@@ -65,10 +65,28 @@ def prepare_charger_allocation_data(charging_schedule, num_chargers):
     return pd.DataFrame(charger_allocation)
 
 def plot_stacked_area_chart_altair(charging_schedule, charging_window):
-    df = pd.DataFrame(charging_schedule).reset_index().melt(id_vars='index')
-    chart = alt.Chart(df).mark_area().encode(
-        x='Hour:O', y=alt.Y('sum(Charge (KW)):Q', stack='zero'), color='Bus:N', tooltip=['Hour', 'Bus', 'sum(Charge (KW))']
-    ).properties(width=1000, height=750, title='Charging Distribution for Each Bus Over the Hour Window')
+    # Convert the numpy array to a pandas DataFrame
+    df = pd.DataFrame(charging_schedule, columns=[f'Hour {i+1}' for i in range(charging_window)])
+    df.reset_index(inplace=True)
+    df.rename(columns={'index': 'Bus'}, inplace=True)
+
+    # Melt the DataFrame to long format suitable for Altair
+    melted_df = df.melt(id_vars=['Bus'], var_name='Hour', value_name='Charge (KW)')
+
+    # Ensure data types are appropriate for plotting
+    melted_df['Bus'] = melted_df['Bus'].astype(str)
+    melted_df['Hour'] = melted_df['Hour'].astype(str)
+    melted_df['Charge (KW)'] = melted_df['Charge (KW)'].astype(float)
+
+    # Create the Altair chart
+    chart = alt.Chart(melted_df).mark_area().encode(
+        x='Hour:N',
+        y=alt.Y('sum(Charge (KW)):Q', stack='zero'),
+        color='Bus:N',
+        tooltip=['Hour', 'Bus', 'sum(Charge (KW))']
+    ).properties(width=1000, height=750, title='Charging Distribution for Each Bus Over the Charging Window')
+
+    # Display the chart
     st.altair_chart(chart)
 
 def plot_schedule_altair(df):
