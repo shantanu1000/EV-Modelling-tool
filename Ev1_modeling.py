@@ -102,20 +102,27 @@ def prepare_charger_allocation_data(charging_schedule, num_chargers):
 np.random.seed()
 
 
-# Prepare the list of charger configurations
-charger_configurations = [(num, capacity) for num, capacity in st.session_state.charger_configurations]
+bus_capacities = [capacity * num for num, capacity in st.session_state.bus_configurations]
 
-# Calculate initial charge levels
-initial_charge_levels = get_initial_charge_levels(num_buses, bus_capacities)
+# Calculate the total number of buses
+num_buses = sum(num for num, _ in st.session_state.bus_configurations)
 
-# Call the function with the updated arguments
-charging_schedule = calculate_charging_schedule(
-    bus_capacities, 
-    initial_charge_levels, 
-    charging_window, 
-    charger_configurations,  # Use the prepared list of charger configurations
-    charging_rates
-)
+# Ensure that there is at least one bus before proceeding
+if num_buses > 0:
+    # Prepare the list of charger configurations
+    charger_configurations = [(num, capacity) for num, capacity in st.session_state.charger_configurations]
+
+    # Calculate initial charge levels
+    initial_charge_levels = get_initial_charge_levels(num_buses, bus_capacities)
+
+    # Call the function with the updated arguments
+    charging_schedule = calculate_charging_schedule(
+        bus_capacities, 
+        initial_charge_levels, 
+        charging_window, 
+        charger_configurations,  # Use the prepared list of charger configurations
+        charging_rates
+    )
 
 
 bus_info_str = "### Configured Buses:\n"
