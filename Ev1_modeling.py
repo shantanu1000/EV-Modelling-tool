@@ -37,14 +37,19 @@ bus_capacities = []
 for num, capacity in st.session_state.bus_configurations:
     bus_capacities.extend([capacity] * num)
 
-# Ensure num_buses has a valid value
+# Initialize num_chargers in session state if not already set
+if 'num_chargers' not in st.session_state:
+    st.session_state.num_chargers = 1
+
+# Calculate the total number of buses
 num_buses = sum(num for num, _ in st.session_state.bus_configurations)
 
-# If no buses have been configured, set a default minimum value
-num_buses = max(1, num_buses)
+# Update num_chargers based on the total number of buses
+max_chargers = max(1, num_buses)
+num_chargers = st.sidebar.number_input("Number of Chargers", 1, max_chargers, st.session_state.num_chargers)
 
-# Define num_chargers input with the total number of buses as the maximum value
-num_chargers = st.sidebar.number_input("Number of Chargers", 1, num_buses, 1)
+# Update the session state
+st.session_state.num_chargers = num_chargers
 
 charging_window = st.sidebar.slider("Charging Window (hours)", 1, 24, 8)
 charger_capacity = st.sidebar.slider("Charger Capacity (KW per hour)", 10, 100, 50)
