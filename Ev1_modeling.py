@@ -143,7 +143,7 @@ if num_buses > 0:
     bus_capacities = [capacity * num for num, capacity in st.session_state.bus_configurations]
     initial_charge_levels = get_initial_charge_levels(num_buses, bus_capacities)
     charger_configurations = st.session_state.charger_configurations
-     charging_schedule = calculate_charging_schedule(
+    charging_schedule = calculate_charging_schedule(
         st.session_state.bus_configurations, 
         st.session_state.charger_configurations, 
         charging_window, 
