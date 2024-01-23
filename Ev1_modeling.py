@@ -168,10 +168,9 @@ charging_schedule = calculate_charging_schedule(
     bus_capacities, 
     initial_charge_levels, 
     charging_window, 
-    charger_configurations,  # Pass the list of configurations
+    charger_configurations,  # Replace charger_capacity and num_chargers with this
     charging_rates
 )
-
 total_charge_required = np.sum(bus_capacities) - np.sum(initial_charge_levels)
 
 # Calculate charge delivered based on the charging schedule
