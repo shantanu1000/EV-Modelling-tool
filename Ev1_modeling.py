@@ -39,12 +39,10 @@ for index, (num, capacity) in enumerate(st.session_state.charger_configurations)
 
 charger_configurations = st.session_state.charger_configurations
 
-# Other inputs
 charging_window = st.sidebar.slider("Charging Window (hours)", 1, 24, 8)
 charging_rates = [st.sidebar.slider(f"Charging Rate for Hour {i+1} (KW)", 0.1, 1.0, 0.5, 0.01) for i in range(charging_window)]
 selected_days = st.sidebar.multiselect("Select Operating Days", ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"], default=["Mo", "Tu", "We", "Th", "Fr"])
 
-# Function definitions
 @st.cache
 def get_initial_charge_levels(num_buses, bus_capacities):
     initial_charge_percentages = np.random.uniform(15, 40, num_buses)
@@ -77,8 +75,11 @@ def calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_
 
     return charging_schedule
 
+def calculate_total_cost(charging_schedule, charging_rates):
+    total_energy_consumed = np.sum(charging_schedule)
+    average_rate = np.mean(charging_rates)
+    return total_energy_consumed * average_rate
 
-# Main script logic
 num_buses = sum(num for num, _ in st.session_state.bus_configurations)
 
 if num_buses > 0:
@@ -109,33 +110,3 @@ if num_buses > 0:
 
 else:
     st.warning("Please add at least one bus configuration.")
-
-# Supporting function definitions
-def calculate_total_cost(charging_schedule, charging_rates):
-    total_energy_consumed = np.sum(charging_schedule)
-    average_rate = np.mean(charging_rates)
-    return total_energy_consumed * average_rate
-
-def schedule_to_df(charging_schedule):
-    df = pd.DataFrame(charging_schedule, columns=[f"Hour {i+1}" for i in range(charging_window)])
-    df['Bus Index'] = df.index
-    return df.melt(id_vars='Bus Index', var_name='Hour', value_name='Charge (KW)')
-
-def plot_stacked_area_chart_altair(charging_schedule, charging_window):
-    df = pd.DataFrame(charging_schedule).reset_index().melt(id_vars='index')
-    chart = alt.Chart(df).mark_area().encode(
-        x='Hour:O', y=alt.Y('sum(Charge (KW)):Q', stack='zero'), color='Bus:N', tooltip=['Hour', 'Bus', 'sum(Charge (KW))']
-    ).properties(width=1000, height=750, title='Charging Distribution for Each Bus Over the Hour Window')
-    st.altair_chart(chart)
-
-def plot_schedule_altair(df):
-    chart = alt.Chart(df).mark_rect().encode(
-        x='Hour:O', y='Bus Index:O', color='Charge (KW):Q', tooltip=['Bus Index', 'Hour', 'Charge (KW)']
-    ).properties(width=1000, height=1000, title='Charging Schedule for Buses')
-    st.altair_chart(chart)
-
-def plot_charger_allocation_chart(df):
-    chart = alt.Chart(df).mark_rect().encode(
-        x='Hour:O', y='Charger:O', color='Bus:N', tooltip=['Hour', 'Charger', 'Bus', 'Charge']
-    ).properties(width=800, height=400, title='Charger Allocation to Buses Over Time')
-    st.altair_chart(chart)
