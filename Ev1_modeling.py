@@ -3,54 +3,35 @@ import numpy as np
 import pandas as pd
 import altair as alt
 
-
-# Title in the center column
 st.title("EV Modeling for School Buses")
 
-
-# Sidebar user input
-st.sidebar.header('Parameters')
-
-# Initialize session state for managing dynamic buses and capacities
+# Sidebar user input for buses
+st.sidebar.header('Bus Parameters')
 if "bus_configurations" not in st.session_state:
     st.session_state.bus_configurations = []
 
-# Allow users to add sets of buses with specific capacities
 num_buses_input = st.sidebar.number_input("Number of Buses", 1, 500, 1)
 bus_capacity_input = st.sidebar.number_input("Bus Capacity (KW)", 50, 500, 155)
 if st.sidebar.button("Add Buses"):
     st.session_state.bus_configurations.append((num_buses_input, bus_capacity_input))
 
-
-# Display list of added bus configurations with an option to remove
 st.sidebar.write("Bus Configurations:")
-to_remove = None
+to_remove_bus = None
 for index, (num, capacity) in enumerate(st.session_state.bus_configurations):
-    if st.sidebar.button(f"Remove {num} buses of {capacity} KW", key=f"remove_{index}"):
-        to_remove = index
-if to_remove is not None:
-    del st.session_state.bus_configurations[to_remove]
+    if st.sidebar.button(f"Remove {num} buses of {capacity} KW", key=f"remove_bus_{index}"):
+        to_remove_bus = index
+if to_remove_bus is not None:
+    del st.session_state.bus_configurations[to_remove_bus]
 
-# Aggregate the total list of buses based on configurations
-bus_capacities = []
+bus_capacities = [capacity * num for num, capacity in st.session_state.bus_configurations]
 
-for num, capacity in st.session_state.bus_configurations:
-    bus_capacities.extend([capacity] * num)
-
-# Initialize num_chargers in session state if not already set
-if 'num_chargers' not in st.session_state:
-    st.session_state.num_chargers = 1
-
-# Calculate the total number of buses
-num_buses = sum(num for num, _ in st.session_state.bus_configurations)
-
+# Sidebar user input for chargers
+st.sidebar.header('Charger Parameters')
 if "charger_configurations" not in st.session_state:
     st.session_state.charger_configurations = []
 
-st.sidebar.header('Charger Configurations')
-
-num_chargers_input = st.sidebar.number_input("Number of Chargers", 1, 500, 1)
-charger_capacity_input = st.sidebar.number_input("Charger Capacity (KW)", 10, 500, 50)
+num_chargers_input = st.sidebar.number_input("Number of Chargers", 1, 500, 1, key="num_chargers")
+charger_capacity_input = st.sidebar.number_input("Charger Capacity (KW)", 10, 500, 50, key="charger_capacity")
 if st.sidebar.button("Add Charger"):
     st.session_state.charger_configurations.append((num_chargers_input, charger_capacity_input))
 
@@ -62,57 +43,41 @@ for index, (num, capacity) in enumerate(st.session_state.charger_configurations)
 if to_remove_charger is not None:
     del st.session_state.charger_configurations[to_remove_charger]
 
+charger_configurations = st.session_state.charger_configurations
 
-
+# Other inputs
 charging_window = st.sidebar.slider("Charging Window (hours)", 1, 24, 8)
-charger_capacity = st.sidebar.slider("Charger Capacity (KW per hour)", 10, 100, 50)
-charging_rates = [
-    st.sidebar.slider(f"Charging Rate for Hour {i+1} (KW)", 0.1, 1.0, 0.5, 0.01)
-    for i in range(charging_window)
-]
-selected_days = st.sidebar.multiselect(
-    "Select Operating Days",
-    options=["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
-    default=["Mo", "Tu", "We", "Th", "Fr"]
-)
+charging_rates = [st.sidebar.slider(f"Charging Rate for Hour {i+1} (KW)", 0.1, 1.0, 0.5, 0.01) for i in range(charging_window)]
+selected_days = st.sidebar.multiselect("Select Operating Days", options=["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"], default=["Mo", "Tu", "We", "Th", "Fr"])
 
-
-@st.cache_data
+# Function definitions
+@st.cache
 def get_initial_charge_levels(num_buses, bus_capacities):
     initial_charge_percentages = np.random.uniform(15, 40, num_buses)
     initial_charge_levels = initial_charge_percentages / 100 * np.array(bus_capacities)
     return initial_charge_levels
 
-@st.cache_data
+@st.cache
 def calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_window, charger_configurations, charging_rates):
     charging_needs = np.array(bus_capacities) - initial_charge_levels
     charging_schedule = np.zeros((len(bus_capacities), charging_window))
 
     for hour in range(charging_window):
-        # Sort buses by their remaining charging needs
         sorted_indices = np.argsort(-charging_needs)
-        
+
         for num_chargers, charger_capacity in charger_configurations:
             chargers_allocated = 0
-            
+
             for idx in sorted_indices:
                 if chargers_allocated >= num_chargers or charging_needs[idx] <= 0:
                     continue
 
-                # Calculate the charge for this hour considering the charger capacity and rate
                 charge_this_hour = min(charging_needs[idx], charger_capacity * charging_rates[hour])
                 charging_schedule[idx, hour] += charge_this_hour
-
-                # Update remaining needs and allocated chargers
                 charging_needs[idx] -= charge_this_hour
                 chargers_allocated += 1
 
     return charging_schedule
-
-# Main script logic
-num_buses = len(bus_capacities)
-initial_charge_levels = get_initial_charge_levels(num_buses, bus_capacities)
-charging_schedule = calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_window, charger_configurations, charging_rates)
     
 def prepare_charger_allocation_data(charging_schedule, num_chargers):
     hours = charging_schedule.shape[1]
