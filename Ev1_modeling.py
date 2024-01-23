@@ -52,8 +52,9 @@ def get_initial_charge_levels(num_buses, bus_capacities):
 
 @st.cache
 def calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_window, charger_configurations, charging_rates):
+    num_buses = len(bus_capacities)
     charging_needs = np.array(bus_capacities) - initial_charge_levels
-    charging_schedule = np.zeros((len(bus_capacities), charging_window))
+    charging_schedule = np.zeros((num_buses, charging_window))
 
     for hour in range(charging_window):
         sorted_indices = np.argsort(-charging_needs)
@@ -62,15 +63,20 @@ def calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_
             chargers_allocated = 0
 
             for idx in sorted_indices:
-                if chargers_allocated >= num_chargers or charging_needs[idx] <= 0:
+                if chargers_allocated >= num_chargers:
+                    break
+
+                if charging_needs[idx] <= 0:
                     continue
 
                 charge_this_hour = min(charging_needs[idx], charger_capacity * charging_rates[hour])
-                charging_schedule[idx, hour] += charge_this_hour
-                charging_needs[idx] -= charge_this_hour
-                chargers_allocated += 1
+                if hour < charging_schedule.shape[1] and idx < charging_schedule.shape[0]:
+                    charging_schedule[idx, hour] += charge_this_hour
+                    charging_needs[idx] -= charge_this_hour
+                    chargers_allocated += 1
 
     return charging_schedule
+
 
 # Main script logic
 num_buses = sum(num for num, _ in st.session_state.bus_configurations)
