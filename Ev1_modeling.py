@@ -108,6 +108,11 @@ def calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_
                 chargers_allocated += 1
 
     return charging_schedule
+
+# Main script logic
+num_buses = len(bus_capacities)
+initial_charge_levels = get_initial_charge_levels(num_buses, bus_capacities)
+charging_schedule = calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_window, charger_configurations, charging_rates)
     
 def prepare_charger_allocation_data(charging_schedule, num_chargers):
     hours = charging_schedule.shape[1]
@@ -157,20 +162,6 @@ def calculate_total_cost(charging_schedule, charging_rates):
     total_cost = total_energy_consumed * average_rate
     return total_cost
     
-# Prepare the list of charger configurations
-charger_configurations = [(num, capacity) for num, capacity in st.session_state.charger_configurations]
-
-# Calculate initial charge levels
-initial_charge_levels = get_initial_charge_levels(num_buses, bus_capacities)
-
-# Call the function with the updated arguments
-charging_schedule = calculate_charging_schedule(
-    bus_capacities, 
-    initial_charge_levels, 
-    charging_window, 
-    charger_configurations,  # Replace charger_capacity and num_chargers with this
-    charging_rates
-)
 total_charge_required = np.sum(bus_capacities) - np.sum(initial_charge_levels)
 
 # Calculate charge delivered based on the charging schedule
