@@ -44,12 +44,25 @@ if 'num_chargers' not in st.session_state:
 # Calculate the total number of buses
 num_buses = sum(num for num, _ in st.session_state.bus_configurations)
 
-# Update num_chargers based on the total number of buses
-max_chargers = max(1, num_buses)
-num_chargers = st.sidebar.number_input("Number of Chargers", 1, max_chargers, st.session_state.num_chargers)
+if "charger_configurations" not in st.session_state:
+    st.session_state.charger_configurations = []
 
-# Update the session state
-st.session_state.num_chargers = num_chargers
+st.sidebar.header('Charger Configurations')
+
+num_chargers_input = st.sidebar.number_input("Number of Chargers", 1, 500, 1)
+charger_capacity_input = st.sidebar.number_input("Charger Capacity (KW)", 10, 500, 50)
+if st.sidebar.button("Add Charger"):
+    st.session_state.charger_configurations.append((num_chargers_input, charger_capacity_input))
+
+st.sidebar.write("Charger Configurations:")
+to_remove_charger = None
+for index, (num, capacity) in enumerate(st.session_state.charger_configurations):
+    if st.sidebar.button(f"Remove {num} chargers of {capacity} KW", key=f"remove_charger_{index}"):
+        to_remove_charger = index
+if to_remove_charger is not None:
+    del st.session_state.charger_configurations[to_remove_charger]
+
+
 
 charging_window = st.sidebar.slider("Charging Window (hours)", 1, 24, 8)
 charger_capacity = st.sidebar.slider("Charger Capacity (KW per hour)", 10, 100, 50)
@@ -70,34 +83,28 @@ def get_initial_charge_levels(num_buses, bus_capacities):
     return initial_charge_levels
 
 @st.cache_data
-def calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_window, charger_capacity, charging_rates, num_chargers):
+def calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_window, charger_configurations, charging_rates):
     charging_needs = np.array(bus_capacities) - initial_charge_levels
-    hours = len(charging_rates)
-    charging_schedule = np.zeros((len(bus_capacities), hours))
+    charging_schedule = np.zeros((len(bus_capacities), charging_window))
 
-    for h in range(hours):
-        # Sort buses by their remaining charging needs at each hour
+    for hour in range(charging_window):
+        # Sort buses by their remaining charging needs
         sorted_indices = np.argsort(-charging_needs)
+        
+        for num_chargers, charger_capacity in charger_configurations:
+            chargers_allocated = 0
+            
+            for idx in sorted_indices:
+                if chargers_allocated >= num_chargers or charging_needs[idx] <= 0:
+                    continue
 
-        # Track the number of chargers used in this hour
-        chargers_used = 0
+                # Calculate the charge for this hour considering the charger capacity and rate
+                charge_this_hour = min(charging_needs[idx], charger_capacity * charging_rates[hour])
+                charging_schedule[idx, hour] += charge_this_hour
 
-        for idx in sorted_indices:
-            if chargers_used >= num_chargers:
-                # All available chargers are allocated for this hour
-                break
-
-            remaining_charge_need = charging_needs[idx]
-            if remaining_charge_need <= 0:
-                continue
-
-            # Calculate max charge that can be provided in this hour
-            charge_this_hour = min(remaining_charge_need, charger_capacity * charging_rates[h])
-            charging_schedule[idx, h] = charge_this_hour
-
-            # Update the remaining charge needs and chargers used
-            charging_needs[idx] -= charge_this_hour
-            chargers_used += 1
+                # Update remaining needs and allocated chargers
+                charging_needs[idx] -= charge_this_hour
+                chargers_allocated += 1
 
     return charging_schedule
     
