@@ -207,12 +207,13 @@ def plot_schedule_altair(df):
 
 plot_schedule_altair(schedule_df)
 
+print(charger_allocation_df.dtypes)
 
 def plot_charger_allocation_chart(df):
     chart = alt.Chart(df).mark_rect().encode(
-        x='Hour:O',
-        y='Charger:O',
-        color='Bus:N',
+        x='Hour:O',  # Ordinal encoding for Hour
+        y='Charger:O',  # Ordinal encoding for Charger
+        color='Bus:N',  # Nominal encoding for Bus
         tooltip=['Hour', 'Charger', 'Bus', 'Charge']
     ).properties(
         width=800,
