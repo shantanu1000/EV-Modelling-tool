@@ -41,7 +41,7 @@ for num, capacity in st.session_state.bus_configurations:
 num_buses = sum(num for num, _ in st.session_state.bus_configurations)
 
 # If no buses have been configured, set a default minimum value
-num_buses = max(1, total_num_buses)
+num_buses = max(1, num_buses)
 
 # Define num_chargers input with the total number of buses as the maximum value
 num_chargers = st.sidebar.number_input("Number of Chargers", 1, num_buses, 1)
