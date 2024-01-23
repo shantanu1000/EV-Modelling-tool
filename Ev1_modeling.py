@@ -11,7 +11,7 @@ def get_initial_charge_levels(bus_configurations):
         initial_levels = np.random.uniform(15, 40, num) / 100 * capacity
         initial_charge_levels.extend(initial_levels)
     return np.array(initial_charge_levels)
-
+    
 @st.cache
 def calculate_charging_schedule(bus_configurations, charger_configurations, charging_window, charging_rates):
     total_buses = sum(num for num, _ in bus_configurations)
@@ -141,7 +141,7 @@ selected_days = st.sidebar.multiselect("Select Operating Days", ["Mo", "Tu", "We
 num_buses = sum(num for num, _ in st.session_state.bus_configurations)
 if num_buses > 0:
     bus_capacities = [capacity * num for num, capacity in st.session_state.bus_configurations]
-    initial_charge_levels = get_initial_charge_levels(num_buses, bus_capacities)
+    initial_charge_levels = get_initial_charge_levels(st.session_state.bus_configurations)
     charger_configurations = st.session_state.charger_configurations
     charging_schedule = calculate_charging_schedule(
         st.session_state.bus_configurations, 
