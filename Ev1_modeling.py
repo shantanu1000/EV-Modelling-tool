@@ -5,34 +5,33 @@ import altair as alt
 
 # Function definitions
 @st.cache
-def get_initial_charge_levels(num_buses, bus_capacities):
-    initial_charge_percentages = np.random.uniform(15, 40, num_buses)
-    return initial_charge_percentages / 100 * np.array(bus_capacities)
+def get_initial_charge_levels(bus_configurations):
+    initial_charge_levels = []
+    for num, capacity in bus_configurations:
+        initial_levels = np.random.uniform(15, 40, num) / 100 * capacity
+        initial_charge_levels.extend(initial_levels)
+    return np.array(initial_charge_levels)
 
 @st.cache
-def calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_window, charger_configurations, charging_rates):
-    num_buses = len(bus_capacities)
-    charging_schedule = np.zeros((num_buses, charging_window))
+def calculate_charging_schedule(bus_configurations, charger_configurations, charging_window, charging_rates):
+    total_buses = sum(num for num, _ in bus_configurations)
+    bus_capacities = np.array([capacity for num, capacity in bus_configurations for _ in range(num)])
+    charging_schedule = np.zeros((total_buses, charging_window))
+    initial_charge_levels = get_initial_charge_levels(bus_configurations)
 
     for hour in range(charging_window):
-        # Calculate the charging needs for each bus
-        charging_needs = np.array(bus_capacities) - np.sum(charging_schedule, axis=1)
-
-        # Sort buses by their remaining charging needs
+        charging_needs = bus_capacities - np.sum(charging_schedule, axis=1)
         sorted_indices = np.argsort(-charging_needs)
 
         for num_chargers, charger_capacity in charger_configurations:
-            chargers_allocated = 0
-
+            chargers_used = 0
             for idx in sorted_indices:
-                if chargers_allocated >= num_chargers or charging_needs[idx] <= 0:
-                    continue
+                if chargers_used >= num_chargers or charging_needs[idx] <= 0:
+                    break
 
-                # Ensure indices are within bounds
-                if hour < charging_schedule.shape[1] and idx < charging_schedule.shape[0]:
-                    charge_this_hour = min(charging_needs[idx], charger_capacity * charging_rates[hour])
-                    charging_schedule[idx, hour] += charge_this_hour
-                    chargers_allocated += 1
+                charge_this_hour = min(charging_needs[idx], charger_capacity * charging_rates[hour])
+                charging_schedule[idx, hour] += charge_this_hour
+                chargers_used += 1
 
     return charging_schedule
 
@@ -144,8 +143,12 @@ if num_buses > 0:
     bus_capacities = [capacity * num for num, capacity in st.session_state.bus_configurations]
     initial_charge_levels = get_initial_charge_levels(num_buses, bus_capacities)
     charger_configurations = st.session_state.charger_configurations
-    charging_schedule = calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_window, charger_configurations, charging_rates)
-
+     charging_schedule = calculate_charging_schedule(
+        st.session_state.bus_configurations, 
+        st.session_state.charger_configurations, 
+        charging_window, 
+        charging_rates
+    )
     total_charge_required = np.sum(bus_capacities) - np.sum(initial_charge_levels)
     charge_delivered = np.sum(charging_schedule)
     st.write(f"Total charge required to charge all buses to full capacity: {total_charge_required:.2f} KW")
