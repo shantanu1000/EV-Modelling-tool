@@ -76,6 +76,21 @@ selected_days = st.sidebar.multiselect(
     default=["Mo", "Tu", "We", "Th", "Fr"]
 )
 
+# Prepare the list of charger configurations
+charger_configurations = [(num, capacity) for num, capacity in st.session_state.charger_configurations]
+
+# Calculate initial charge levels
+initial_charge_levels = get_initial_charge_levels(num_buses, bus_capacities)
+
+# Call the function with the updated arguments
+charging_schedule = calculate_charging_schedule(
+    bus_capacities, 
+    initial_charge_levels, 
+    charging_window, 
+    charger_configurations,  # Pass the list of configurations
+    charging_rates
+)
+
 @st.cache_data
 def get_initial_charge_levels(num_buses, bus_capacities):
     initial_charge_percentages = np.random.uniform(15, 40, num_buses)
