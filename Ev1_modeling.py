@@ -172,7 +172,7 @@ def plot_schedule_altair(df):
 plot_schedule_altair(schedule_df)
 
 @st.cache
-def monte_carlo_initial_charges(bus_configurations, iterations=1000):
+def monte_carlo_initial_charges(bus_configurations, iterations=10000):
     total_charge_required = []
     for _ in range(iterations):
         # Generate random initial charge levels for each bus configuration
@@ -192,7 +192,7 @@ def plot_charge_distribution(total_charge_required):
     ).properties(
         width=600,
         height=400,
-        title="Distribution of Total Additional Charge Required (1000 Iterations)"
+        title="Distribution of Total Additional Charge Required (10000 Iterations)"
     )
     st.altair_chart(chart)
 
