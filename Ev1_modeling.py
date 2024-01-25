@@ -174,10 +174,12 @@ plot_schedule_altair(schedule_df)
 @st.cache
 def monte_carlo_initial_charges(bus_configurations, iterations=1000):
     total_charge_required = []
-    for i in range(iterations):
-        initial_charge_levels = get_initial_charge_levels(bus_configurations, i)
-        charging_schedule = calculate_charging_schedule(bus_configurations, 24, [1.0]*24, initial_charge_levels)
-        total_additional_charge = np.sum(np.array(bus_capacities) - np.sum(charging_schedule, axis=1))
+    for _ in range(iterations):
+        # Generate random initial charge levels for each bus configuration
+        simulated_initial_charges = [np.random.uniform(15, 40, num) / 100 * capacity for num, capacity in bus_configurations]
+        # Flatten the list of lists to a single list of all initial charges
+        all_initial_charges = [charge for charges in simulated_initial_charges for charge in charges]
+        total_additional_charge = sum(capacity - charge for charge, capacity in zip(all_initial_charges, bus_capacities))
         total_charge_required.append(total_additional_charge)
     return total_charge_required
 
