@@ -65,6 +65,7 @@ def prepare_charger_allocation_data(charging_schedule, charger_configurations):
                 chargers_used += 1
 
     return pd.DataFrame(charger_allocation)
+
     
 
 def plot_stacked_area_chart_altair(charging_schedule, charging_window):
