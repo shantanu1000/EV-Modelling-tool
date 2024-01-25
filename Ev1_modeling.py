@@ -50,7 +50,7 @@ def schedule_to_df(charging_schedule):
 def prepare_charger_allocation_data(charging_schedule, charger_configurations):
     hours = charging_schedule.shape[1]
     charger_allocation = []
-    total_chargers = sum(num for num, _ in charger_configurations)
+    total_chargers = sum(num_chargers for num_chargers, _ in charger_configurations)
 
     for hour in range(hours):
         chargers_used = 0
