@@ -45,14 +45,15 @@ def schedule_to_df(charging_schedule):
     df['Bus Index'] = df.index
     return df.melt(id_vars='Bus Index', var_name='Hour', value_name='Charge (KW)')
 
-def prepare_charger_allocation_data(charging_schedule, num_chargers):
+def prepare_charger_allocation_data(charging_schedule, charger_configurations):
     hours = charging_schedule.shape[1]
     charger_allocation = []
+    total_chargers = sum(num for num, _ in charger_configurations)
 
     for hour in range(hours):
         chargers_used = 0
         for bus_index, charge in enumerate(charging_schedule[:, hour]):
-            if charge > 0 and chargers_used < num_chargers:
+            if charge > 0 and chargers_used < total_chargers:
                 charger_allocation.append({
                     'Hour': hour + 1,
                     'Charger': chargers_used + 1,
@@ -62,6 +63,7 @@ def prepare_charger_allocation_data(charging_schedule, num_chargers):
                 chargers_used += 1
 
     return pd.DataFrame(charger_allocation)
+    
 
 def plot_stacked_area_chart_altair(charging_schedule, charging_window):
     # Convert the numpy array to a pandas DataFrame
