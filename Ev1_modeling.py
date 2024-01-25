@@ -182,13 +182,21 @@ def monte_carlo_initial_charges(bus_configurations, iterations=1000):
 
 # Plot Distribution of Total Charge Required
 def plot_charge_distribution(total_charge_required):
-    sns.set(style="whitegrid")
-    plt.figure(figsize=(10, 6))
-    sns.histplot(total_charge_required, kde=True, color="blue")
-    plt.title("Distribution of Total Charge Required (1000 Iterations)")
-    plt.xlabel("Total Charge Required (KW)")
-    plt.ylabel("Frequency")
-    st.pyplot(plt)
+    # Create a DataFrame for the total charge required data
+    data = pd.DataFrame({'Total Charge Required (KW)': total_charge_required})
+
+    # Create an Altair chart object
+    chart = alt.Chart(data).mark_bar().encode(
+        alt.X("Total Charge Required (KW)", bin=alt.Bin(maxbins=30), title="Total Charge Required (KW)"),
+        alt.Y('count()', title="Frequency")
+    ).properties(
+        width=700,
+        height=400,
+        title="Distribution of Total Charge Required (1000 Iterations)"
+    )
+
+    # Display the chart in Streamlit
+    st.altair_chart(chart)
 
 # Perform Monte Carlo Simulation and Plot
 if st.button("Run Monte Carlo Simulation"):
