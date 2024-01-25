@@ -26,11 +26,13 @@ def calculate_charging_schedule(bus_configurations, charger_configurations, char
         for num_chargers, charger_capacity in charger_configurations:
             chargers_used = 0
             for idx in sorted_indices:
-                if chargers_used >= num_chargers or charging_needs[idx] <= 0:
+                if chargers_used >= num_chargers:
                     break
+                if charging_needs[idx] <= 0:
+                    continue
 
-                charge_this_hour = min(charging_needs[idx], charger_capacity * charging_rates[hour])
-                charging_schedule[idx, hour] += charge_this_hour
+                max_possible_charge = min(charger_capacity * charging_rates[hour], charging_needs[idx])
+                charging_schedule[idx, hour] += max_possible_charge
                 chargers_used += 1
 
     return charging_schedule
@@ -139,7 +141,6 @@ charging_window = st.sidebar.slider("Charging Window (hours)", 1, 24, 8)
 charging_rates = [st.sidebar.slider(f"Charging Rate for Hour {i+1} (KW)", 0.1, 1.0, 0.5, 0.01) for i in range(charging_window)]
 selected_days = st.sidebar.multiselect("Select Operating Days", ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"], default=["Mo", "Tu", "We", "Th", "Fr"])
 
-# Main Script Logic
 num_buses = sum(num for num, _ in st.session_state.bus_configurations)
 if num_buses > 0:
     bus_capacities = [capacity * num for num, capacity in st.session_state.bus_configurations]
