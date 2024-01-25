@@ -174,28 +174,24 @@ plot_schedule_altair(schedule_df)
 @st.cache
 def monte_carlo_initial_charges(bus_configurations, iterations=1000):
     total_charge_required = []
-    for _ in range(iterations):
-        simulated_initial_charges = [np.random.uniform(15, 40, num) / 100 * capacity for num, capacity in bus_configurations]
-        total_charge = np.sum([capacity - np.sum(initial_charges) for initial_charges, (num, capacity) in zip(simulated_initial_charges, bus_configurations)])
-        total_charge_required.append(total_charge)
+    for i in range(iterations):
+        initial_charge_levels = get_initial_charge_levels(bus_configurations, i)
+        charging_schedule = calculate_charging_schedule(bus_configurations, 24, [1.0]*24, initial_charge_levels)
+        total_additional_charge = np.sum(np.array(bus_capacities) - np.sum(charging_schedule, axis=1))
+        total_charge_required.append(total_additional_charge)
     return total_charge_required
 
-# Plot Distribution of Total Charge Required
+# Plot Distribution function
 def plot_charge_distribution(total_charge_required):
-    # Create a DataFrame for the total charge required data
-    data = pd.DataFrame({'Total Charge Required (KW)': total_charge_required})
-
-    # Create an Altair chart object
+    data = pd.DataFrame({'Total Additional Charge Required (KW)': total_charge_required})
     chart = alt.Chart(data).mark_bar().encode(
-        alt.X("Total Charge Required (KW)", bin=alt.Bin(maxbins=30), title="Total Charge Required (KW)"),
-        alt.Y('count()', title="Frequency")
+        x=alt.X("Total Additional Charge Required (KW)", bin=alt.Bin(maxbins=50)),
+        y='count()'
     ).properties(
-        width=700,
+        width=600,
         height=400,
-        title="Distribution of Total Charge Required (1000 Iterations)"
+        title="Distribution of Total Additional Charge Required (1000 Iterations)"
     )
-
-    # Display the chart in Streamlit
     st.altair_chart(chart)
 
 # Perform Monte Carlo Simulation and Plot
