@@ -170,3 +170,27 @@ def plot_schedule_altair(df):
     st.altair_chart(chart)
 
 plot_schedule_altair(schedule_df)
+
+@st.cache
+def monte_carlo_initial_charges(bus_configurations, iterations=1000):
+    total_charge_required = []
+    for _ in range(iterations):
+        simulated_initial_charges = [np.random.uniform(15, 40, num) / 100 * capacity for num, capacity in bus_configurations]
+        total_charge = np.sum([capacity - np.sum(initial_charges) for initial_charges, (num, capacity) in zip(simulated_initial_charges, bus_configurations)])
+        total_charge_required.append(total_charge)
+    return total_charge_required
+
+# Plot Distribution of Total Charge Required
+def plot_charge_distribution(total_charge_required):
+    sns.set(style="whitegrid")
+    plt.figure(figsize=(10, 6))
+    sns.histplot(total_charge_required, kde=True, color="blue")
+    plt.title("Distribution of Total Charge Required (1000 Iterations)")
+    plt.xlabel("Total Charge Required (KW)")
+    plt.ylabel("Frequency")
+    st.pyplot(plt)
+
+# Perform Monte Carlo Simulation and Plot
+if st.button("Run Monte Carlo Simulation"):
+    total_charge_required = monte_carlo_initial_charges(st.session_state.bus_configurations)
+    plot_charge_distribution(total_charge_required)
