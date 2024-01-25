@@ -124,19 +124,35 @@ for index, (num, capacity) in enumerate(st.session_state.bus_configurations):
         del st.session_state.bus_configurations[index]
 
 st.sidebar.header('Charger Parameters')
+
+# Initialize charger configurations if not already present
 if "charger_configurations" not in st.session_state:
     st.session_state.charger_configurations = []
 
+# Input for number and capacity of chargers
 num_chargers_input = st.sidebar.number_input("Number of Chargers", 1, 500, 1, key="num_chargers")
 charger_capacity_input = st.sidebar.number_input("Charger Capacity (KW)", 10, 500, 50, key="charger_capacity")
+
+# Button to add charger configurations
 if st.sidebar.button("Add Charger"):
     st.session_state.charger_configurations.append((num_chargers_input, charger_capacity_input))
 
+# Check for correct formatting of charger configurations
+if all(isinstance(item, tuple) and len(item) == 2 for item in st.session_state.charger_configurations):
+    # Calculate total chargers
+    total_chargers = sum(num_chargers for num_chargers, _ in st.session_state.charger_configurations)
+else:
+    st.error("Charger configurations are not correctly formatted.")
+
+# Display and remove charger configurations
 st.sidebar.write("Charger Configurations:")
 for index, (num, capacity) in enumerate(st.session_state.charger_configurations):
     if st.sidebar.button(f"Remove {num} chargers of {capacity} KW", key=f"remove_charger_{index}"):
         del st.session_state.charger_configurations[index]
 
+# Optionally, display the total number of chargers
+if 'total_chargers' in locals():
+    st.sidebar.write(f"Total Chargers: {total_chargers}")
 # Other inputs
 charging_window = st.sidebar.slider("Charging Window (hours)", 1, 24, 8)
 charging_rates = [st.sidebar.slider(f"Charging Rate for Hour {i+1} (KW)", 0.1, 1.0, 0.5, 0.01) for i in range(charging_window)]
