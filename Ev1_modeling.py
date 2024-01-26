@@ -49,6 +49,7 @@ selected_days = st.sidebar.multiselect(
     options=["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
     default=["Mo", "Tu", "We", "Th", "Fr"]
 )
+max_demand = st.number_input("Maximum Demand per Hour (KW)", 100, 10000, 1000)
 
 @st.cache_data
 def get_initial_charge_levels(num_buses, bus_capacities):
@@ -60,7 +61,6 @@ def get_initial_charge_levels(num_buses, bus_capacities):
 def calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_window, charger_capacity, charging_rates):
     charging_needs = np.array(bus_capacities) - initial_charge_levels
     total_charge_required = np.sum(charging_needs)
-    threshold_30_percent = 0.3 * charger_capacity * len(bus_capacities)
     sorted_indices = np.argsort(-charging_needs)
     
     hours = len(charging_rates)
@@ -73,7 +73,7 @@ def calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_
             if remaining_charge <= 0:
                 break
             current_total_charge_this_hour = np.sum(charging_schedule[:, h])
-            max_possible_charge_this_hour = threshold_30_percent - current_total_charge_this_hour
+            max_possible_charge_this_hour = max_demand - current_total_charge_this_hour
             # Use the charger capacity as the maximum charge per hour
             available_charge_this_hour = min(charger_capacity, max_possible_charge_this_hour)
             charge_this_hour = min(available_charge_this_hour, remaining_charge)
