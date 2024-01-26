@@ -55,11 +55,15 @@ def calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_
 
             available_capacity = min(charger_capacity * charging_rates[hour], remaining_demand)
             charge_this_hour = min(charging_needs[idx], available_capacity)
-            charging_schedule[idx, hour] = charge_this_hour
-            charging_needs[idx] -= charge_this_hour
-            remaining_demand -= charge_this_hour
+
+            # Ensure indices are within the bounds of the charging_schedule array
+            if hour < charging_window and idx < num_buses:
+                charging_schedule[idx, hour] = charge_this_hour
+                charging_needs[idx] -= charge_this_hour
+                remaining_demand -= charge_this_hour
 
     return charging_schedule
+
 
 # Calculate bus capacities and initial charge levels
 num_buses = sum(num for num, _ in st.session_state.bus_configurations)
