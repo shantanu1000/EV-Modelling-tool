@@ -37,7 +37,6 @@ def get_initial_charge_levels(num_buses, bus_capacities):
     initial_charge_percentages = np.random.uniform(15, 40, num_buses)
     return initial_charge_percentages / 100 * np.array(bus_capacities)
 
-# Calculate Charging Schedule
 @st.cache
 def calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_window, charger_capacity, charging_rates, max_demand):
     num_buses = len(bus_capacities)
@@ -45,8 +44,8 @@ def calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_
     charging_needs = np.array(bus_capacities) - initial_charge_levels
     
     for hour in range(charging_window):
-        remaining_demand = max_demand
         sorted_indices = np.argsort(-charging_needs)  # Sort buses by their charging needs
+        remaining_demand = max_demand
 
         for idx in sorted_indices:
             if charging_needs[idx] <= 0 or remaining_demand <= 0:
@@ -54,9 +53,10 @@ def calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_
 
             available_capacity = min(charger_capacity * charging_rates[hour], remaining_demand)
             charge_this_hour = min(charging_needs[idx], available_capacity)
-            charging_schedule[idx, hour] = charge_this_hour
-            charging_needs[idx] -= charge_this_hour
-            remaining_demand -= charge_this_hour
+            if hour < charging_window and idx < num_buses:
+                charging_schedule[idx, hour] = charge_this_hour
+                charging_needs[idx] -= charge_this_hour
+                remaining_demand -= charge_this_hour
 
     return charging_schedule
 
