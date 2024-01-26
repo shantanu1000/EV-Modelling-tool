@@ -3,60 +3,41 @@ import numpy as np
 import pandas as pd
 import altair as alt
 
-
-# Title in the center column
+# Title and Sidebar Inputs
 st.title("EV Modeling for School Buses")
-
-
-# Sidebar user input
 st.sidebar.header('Parameters')
 
-# Initialize session state for managing dynamic buses and capacities
+# Bus Configurations
 if "bus_configurations" not in st.session_state:
     st.session_state.bus_configurations = []
 
-# Allow users to add sets of buses with specific capacities
 num_buses_input = st.sidebar.number_input("Number of Buses", 1, 500, 1)
 bus_capacity_input = st.sidebar.number_input("Bus Capacity (KW)", 50, 500, 155)
 if st.sidebar.button("Add Buses"):
     st.session_state.bus_configurations.append((num_buses_input, bus_capacity_input))
 
-# Display list of added bus configurations with an option to remove
+# Display and manage Bus Configurations
 st.sidebar.write("Bus Configurations:")
-to_remove = None
 for index, (num, capacity) in enumerate(st.session_state.bus_configurations):
-    if st.sidebar.button(f"Remove {num} buses of {capacity} KW", key=f"remove_{index}"):
-        to_remove = index
-if to_remove is not None:
-    del st.session_state.bus_configurations[to_remove]
+    if st.sidebar.button(f"Remove {num} buses of {capacity} KW", key=f"remove_bus_{index}"):
+        del st.session_state.bus_configurations[index]
 
-# Aggregate the total list of buses based on configurations
-bus_capacities = []
-
-for num, capacity in st.session_state.bus_configurations:
-    bus_capacities.extend([capacity] * num)
-    
-num_buses = len(bus_capacities)
-
-max_demand = st.number_input("Maximum Demand per Hour (KW)", 100, 10000, 1000)
-charging_window = st.sidebar.slider("Charging Window (hours)", 1, 24, 8)
+# Charger Capacity and Charging Window
 charger_capacity = st.sidebar.slider("Charger Capacity (KW per hour)", 10, 100, 50)
-charging_rates = [
-    st.sidebar.slider(f"Charging Rate for Hour {i+1} (KW)", 0.1, 1.0, 0.5, 0.01)
-    for i in range(charging_window)
-]
-selected_days = st.sidebar.multiselect(
-    "Select Operating Days",
-    options=["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
-    default=["Mo", "Tu", "We", "Th", "Fr"]
-)
+charging_window = st.sidebar.slider("Charging Window (hours)", 1, 24, 8)
+charging_rates = [st.sidebar.slider(f"Charging Rate for Hour {i+1} (KW)", 0.1, 1.0, 0.5, 0.01) for i in range(charging_window)]
 
-@st.cache_data
+# Maximum Demand and Operating Days
+max_demand = st.number_input("Maximum Demand per Hour (KW)", 100, 10000, 1000)
+selected_days = st.sidebar.multiselect("Select Operating Days", ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"], default=["Mo", "Tu", "We", "Th", "Fr"])
+
+# Calculate Initial Charge Levels
+@st.cache
 def get_initial_charge_levels(num_buses, bus_capacities):
     initial_charge_percentages = np.random.uniform(15, 40, num_buses)
-    initial_charge_levels = initial_charge_percentages / 100 * np.array(bus_capacities)
-    return initial_charge_levels
+    return initial_charge_percentages / 100 * np.array(bus_capacities)
 
+# Calculate Charging Schedule
 @st.cache
 def calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_window, charger_capacity, charging_rates, max_demand):
     charging_needs = np.array(bus_capacities) - initial_charge_levels
@@ -67,12 +48,21 @@ def calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_
         for idx in np.argsort(-charging_needs):
             if charging_needs[idx] <= 0 or remaining_demand <= 0:
                 continue
-            charge_this_hour = min(charging_needs[idx], charger_capacity, remaining_demand * charging_rates[hour])
+            charge_this_hour = min(charging_needs[idx], charger_capacity * charging_rates[hour], remaining_demand)
             charging_schedule[idx, hour] = charge_this_hour
             charging_needs[idx] -= charge_this_hour
             remaining_demand -= charge_this_hour
     
     return charging_schedule
+
+# Main Script
+num_buses = sum(num for num, _ in st.session_state.bus_configurations)
+bus_capacities = [capacity * num for num, capacity in st.session_state.bus_configurations]
+
+if num_buses > 0:
+    initial_charge_levels = get_initial_charge_levels(num_buses, bus_capacities)
+    charging_schedule = calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_window, charger_capacity, charging_rates, max_demand)
+
 
 
 
