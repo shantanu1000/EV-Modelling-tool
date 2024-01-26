@@ -74,12 +74,18 @@ if num_buses > 0:
 # Set random seed for reproducibility
 np.random.seed()
 
-
 # Get initial charge levels
 initial_charge_levels = get_initial_charge_levels(num_buses, bus_capacities)
 
 # Calculate charging schedule
-charging_schedule = calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_window, charger_capacity, charging_rates)
+charging_schedule = calculate_charging_schedule(
+    bus_capacities=bus_capacities, 
+    initial_charge_levels=initial_charge_levels, 
+    charging_window=charging_window, 
+    charger_capacity=charger_capacity, 
+    charging_rates=charging_rates, 
+    max_demand=max_demand
+)
 
 
 bus_info_str = "### Configured Buses:\n"
