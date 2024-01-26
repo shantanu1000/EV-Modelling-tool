@@ -56,7 +56,7 @@ def get_initial_charge_levels(num_buses, bus_capacities):
     initial_charge_levels = initial_charge_percentages / 100 * np.array(bus_capacities)
     return initial_charge_levels
 
-@st.cache_data
+@st.cache
 def calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_window, charger_capacity, charging_rates):
     charging_needs = np.array(bus_capacities) - initial_charge_levels
     total_charge_required = np.sum(charging_needs)
@@ -74,13 +74,14 @@ def calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_
                 break
             current_total_charge_this_hour = np.sum(charging_schedule[:, h])
             max_possible_charge_this_hour = threshold_30_percent - current_total_charge_this_hour
-            max_charge_per_hour = 50
-            available_charge_this_hour = min(max_charge_per_hour, max_possible_charge_this_hour)
+            # Use the charger capacity as the maximum charge per hour
+            available_charge_this_hour = min(charger_capacity, max_possible_charge_this_hour)
             charge_this_hour = min(available_charge_this_hour, remaining_charge)
             charging_schedule[idx, h] = charge_this_hour
             remaining_charge -= charge_this_hour
             
     return charging_schedule
+
 
 
 # Set random seed for reproducibility
