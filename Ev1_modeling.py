@@ -64,6 +64,9 @@ def calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_
 
     return charging_schedule
 
+def calculate_total_charge_required(bus_capacities, initial_charge_levels):
+    return np.sum(bus_capacities - initial_charge_levels)
+
 
 # Calculate bus capacities and initial charge levels
 num_buses = sum(num for num, _ in st.session_state.bus_configurations)
@@ -92,8 +95,7 @@ def calculate_total_cost(charging_schedule, charging_rates):
     average_rate = np.mean(charging_rates)
     return total_energy_consumed * average_rate
 
-# Calculate total charge required and delivered
-total_charge_required = np.sum(bus_capacities) - np.sum(initial_charge_levels)
+total_charge_required = calculate_total_charge_required(bus_capacities, initial_charge_levels)
 charge_delivered = np.sum(charging_schedule)
 
 # Display charge and cost information
