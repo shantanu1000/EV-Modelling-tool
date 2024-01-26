@@ -38,6 +38,7 @@ for num, capacity in st.session_state.bus_configurations:
     
 num_buses = len(bus_capacities)
 
+max_demand = st.number_input("Maximum Demand per Hour (KW)", 100, 10000, 1000)
 charging_window = st.sidebar.slider("Charging Window (hours)", 1, 24, 8)
 charger_capacity = st.sidebar.slider("Charger Capacity (KW per hour)", 10, 100, 50)
 charging_rates = [
@@ -57,29 +58,20 @@ def get_initial_charge_levels(num_buses, bus_capacities):
     return initial_charge_levels
 
 @st.cache
-def calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_window, charger_capacity, charging_rates):
+def calculate_charging_schedule(bus_capacities, initial_charge_levels, charging_window, charger_capacity, charging_rates, max_demand):
     charging_needs = np.array(bus_capacities) - initial_charge_levels
-    total_charge_required = np.sum(charging_needs)
-    threshold_30_percent = 0.3 * charger_capacity * len(bus_capacities)
-    sorted_indices = np.argsort(-charging_needs)
+    charging_schedule = np.zeros((len(bus_capacities), charging_window))
     
-    hours = len(charging_rates)
-    charging_schedule = np.zeros((len(bus_capacities), hours))
+    for hour in range(charging_window):
+        remaining_demand = max_demand
+        for idx in np.argsort(-charging_needs):
+            if charging_needs[idx] <= 0 or remaining_demand <= 0:
+                continue
+            charge_this_hour = min(charging_needs[idx], charger_capacity, remaining_demand * charging_rates[hour])
+            charging_schedule[idx, hour] = charge_this_hour
+            charging_needs[idx] -= charge_this_hour
+            remaining_demand -= charge_this_hour
     
-    for idx in sorted_indices:
-        remaining_charge = charging_needs[idx]
-        
-        for h in np.argsort(charging_rates):
-            if remaining_charge <= 0:
-                break
-            current_total_charge_this_hour = np.sum(charging_schedule[:, h])
-            max_possible_charge_this_hour = threshold_30_percent - current_total_charge_this_hour
-            # Use the charger capacity as the maximum charge per hour
-            available_charge_this_hour = min(charger_capacity, max_possible_charge_this_hour)
-            charge_this_hour = min(available_charge_this_hour, remaining_charge)
-            charging_schedule[idx, h] = charge_this_hour
-            remaining_charge -= charge_this_hour
-            
     return charging_schedule
 
 
